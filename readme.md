@@ -12,10 +12,12 @@ Bullet3 is zlib licensed.
 Please check before using though if you have any license questions please examine the package sources explanations on licensing.
 
 ## Just Run It
-
 All you need to run the whole thing is:
-A PC with Win10 and an x64 CPU. 
-A command prompt running from the /src folder:
-.\bin\luvit.exe .\run_project.lua test-urdf test1.lua
+
+1. A PC with Win10 and an x64 CPU. 
+
+2. A command prompt running from the /src folder:
+
+`.\bin\luvit.exe .\run_project.lua test-urdf test1.lua`
 
 Enjoy. :)
