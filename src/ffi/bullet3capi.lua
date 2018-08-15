@@ -1331,7 +1331,11 @@ b3PhysicsClientHandle b3ConnectSharedMemory2(int key);
 	int b3GetStatusVisualShapeUniqueId(b3SharedMemoryStatusHandle statusHandle);
 
 	b3SharedMemoryCommandHandle b3CreateMultiBodyCommandInit(b3PhysicsClientHandle physClient);
-	int b3CreateMultiBodyBase(b3SharedMemoryCommandHandle commandHandle, double mass, int collisionShapeUnique, int visualShapeUniqueId, double basePosition[/*3*/], double baseOrientation[/*4*/] , double baseInertialFramePosition[/*3*/], double baseInertialFrameOrientation[/*4*/]);
+	int b3CreateMultiBodyBase(b3SharedMemoryCommandHandle commandHandle, 
+		double mass, int collisionShapeUnique, int visualShapeUniqueId, 
+		double basePosition[/*3*/], double baseOrientation[/*4*/] , 
+		double baseInertialFramePosition[/*3*/], 
+		double baseInertialFrameOrientation[/*4*/]);
 
 	int b3CreateMultiBodyLink(b3SharedMemoryCommandHandle commandHandle, double linkMass, double linkCollisionShapeIndex, 
 									double linkVisualShapeIndex, 
