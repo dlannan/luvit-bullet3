@@ -16,7 +16,7 @@ function simApp:createWheel( x, y, z, r, w )
     local radius    = r
     local width     = w
 
-    local col = ffi.new( "double[4]", { [0]=1.0, 0.0, 0.0, 1.0} )
+    local col = ffi.new( "double[4]", { [0]=0.0, 1.0, 0.0, 1.0} )
     local pos = ffi.new( "double[3]", { [0]=x, y, z } )
     local frameP = ffi.new( "double[3]", { [0]=0.0, 0.0, 0.0 } )
     local rotflip = ffi.new( "double[4]", { [0]=0.7071, 0.0, 0.0, 0.7071} )
@@ -24,13 +24,12 @@ function simApp:createWheel( x, y, z, r, w )
     local frameR = ffi.new( "double[4]", { [0]=0.0, 0.0, 0.0, 1.0 } )
 
     local cmd = gbullet.b3CreateCollisionShapeCommandInit( self.client )
-    local cindex = gbullet.b3CreateCollisionShapeAddSphere( cmd, radius )
+    local cindex = gbullet.b3CreateCollisionShapeAddCylinder( cmd, radius, width )
     --gbullet.b3CreateCollisionShapeSetChildTransform( cmd, cindex, pos, rot )
     local status = gbullet.b3SubmitClientCommandAndWaitStatus(self.client, cmd)
 
     local cmd = gbullet.b3CreateVisualShapeCommandInit( self.client )
-    --local index = gbullet.b3CreateVisualShapeAddCylinder( cmd, radius, width )
-    local index = gbullet.b3CreateVisualShapeAddSphere( cmd, radius )
+    local index = gbullet.b3CreateVisualShapeAddCylinder( cmd, radius, width )
     --gbullet.b3CreateVisualShapeSetChildTransform( cmd, index, pos, rot )
     gbullet.b3CreateVisualShapeSetRGBAColor( cmd, index, col )
     local status = gbullet.b3SubmitClientCommandAndWaitStatus(self.client, cmd)
@@ -38,7 +37,7 @@ function simApp:createWheel( x, y, z, r, w )
     p("Visual Object Created:", gbullet.b3GetStatusType(status) == gbullet.CMD_CREATE_VISUAL_SHAPE_COMPLETED)
     
     local cmd = gbullet.b3CreateMultiBodyCommandInit(self.client)
-    local rigidbody = gbullet.b3CreateMultiBodyBase( cmd, 2.0, cindex, index, pos, rot, frameP, frameR )
+    local rigidbody = gbullet.b3CreateMultiBodyBase( cmd, 2.0, cindex, index, pos, rotflip, frameP, frameR )
     local status = gbullet.b3SubmitClientCommandAndWaitStatus(self.client, cmd)
     
     p("Multibody Created:", gbullet.b3GetStatusType(status) )
@@ -101,18 +100,15 @@ function simApp:Startup()
     -- Make a vehicle from components
     -- Wheel colliders first 
     vehicle.wheels = {}
-    
-    -- gbullet.b3CreateVisualShapeAddCylinder( cmd, radius, width )
-    -- vehicle.wheels.FR = gbullet.b3SubmitClientCommandAndWaitStatus(self.client, cmd);
-    -- gbullet.b3CreateVisualShapeAddCylinder( cmd, radius, width )
-    -- vehicle.wheels.RL = gbullet.b3SubmitClientCommandAndWaitStatus(self.client, cmd);
-    -- gbullet.b3CreateVisualShapeAddCylinder( cmd, radius, width )
-    -- vehicle.wheels.RR = gbullet.b3SubmitClientCommandAndWaitStatus(self.client, cmd);
- 
 
     --gbullet.b3LoadUrdfCommandSetStartPosition(self.car.physics, 0.0, 10.0, 0.0)
-    vehicle.wheels.FL = self:createWheel(1.0, 0.0, 1.0, 0.5, 0.25)    
-    p("Adding Vehicle...", vehicle.wheels.FL)
+    vehicle.wheels.FL = self:createWheel(2.0, 1.0, 1.0, 0.5, 0.25)    
+    vehicle.wheels.FR = self:createWheel(2.0, -1.0, 1.0, 0.5, 0.25)   
+    vehicle.wheels.RL = self:createWheel(-2.0, 1.0, 1.0, 0.5, 0.25)    
+    vehicle.wheels.RR = self:createWheel(-2.0, -1.0, 1.0, 0.5, 0.25)   
+
+    -- rear axle
+    vehicle.wheels.RA = self:createWheel(-2.0, 0.0, 1.0, 0.1, 1.5)   
    
     -- Set sim to unitialised.
     self.simInit = 0
