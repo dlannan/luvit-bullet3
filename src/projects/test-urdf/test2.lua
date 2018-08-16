@@ -6,49 +6,44 @@ local timer = require('timer')
 
 ------------------------------------------------------------------------------------------------------------
 
+------------------------------------------------------------------------------------------------------------
+
 local simApp = {}
 
-------------------------------------------------------------------------------------------------------------
 
-local Cred = ffi.new( "double[4]",{ [0]=1.0, 0.0, 0.0, 1.0 } )
-local Cgreen = ffi.new( "double[4]",{ [0]=0.0, 1.0, 0.0, 1.0 } )
-local Cblue = ffi.new( "double[4]",{ [0]=0.0, 0.0, 1.0, 1.0 } )
-local Cyellow = ffi.new( "double[4]",{ [0]=1.0, 1.0, 0.0, 1.0 } ) 
-local Ccyan = ffi.new( "double[4]",{ [0]=0.0, 1.0, 1.0, 1.0 } )
-
-------------------------------------------------------------------------------------------------------------
-
-
-function simApp:makeBall( x, y, z, r, col )
+function simApp:createWheel( x, y, z, r, w )
 
     local radius    = r
+    local width     = w
 
+    local col = ffi.new( "double[4]", { [0]=1.0, 0.0, 0.0, 1.0} )
     local pos = ffi.new( "double[3]", { [0]=x, y, z } )
     local frameP = ffi.new( "double[3]", { [0]=0.0, 0.0, 0.0 } )
     local rotflip = ffi.new( "double[4]", { [0]=0.7071, 0.0, 0.0, 0.7071} )
     local rot = ffi.new( "double[4]", { [0]=0.0, 0.0, 0.0, 1.0} )
     local frameR = ffi.new( "double[4]", { [0]=0.0, 0.0, 0.0, 1.0 } )
 
-    local cmd = gbullet.b3CreateVisualShapeCommandInit( self.client )
-    local shapeidx = gbullet.b3CreateVisualShapeAddSphere( cmd, radius )
-    gbullet.b3CreateVisualShapeSetRGBAColor( cmd, shapeidx, col )
-    local status = gbullet.b3SubmitClientCommandAndWaitStatus(self.client, cmd)
-    p("Visual Shape index:", shapeidx)
-
     local cmd = gbullet.b3CreateCollisionShapeCommandInit( self.client )
-    gbullet.b3CreateCollisionShapeAddSphere( cmd, radius )
+    local cindex = gbullet.b3CreateCollisionShapeAddSphere( cmd, radius )
+    --gbullet.b3CreateCollisionShapeSetChildTransform( cmd, cindex, pos, rot )
     local status = gbullet.b3SubmitClientCommandAndWaitStatus(self.client, cmd)
-    local pid = gbullet.b3GetStatusCollisionShapeUniqueId(status)
-    p("Collider index:", pid)
 
+    local cmd = gbullet.b3CreateVisualShapeCommandInit( self.client )
+    --local index = gbullet.b3CreateVisualShapeAddCylinder( cmd, radius, width )
+    local index = gbullet.b3CreateVisualShapeAddSphere( cmd, radius )
+    --gbullet.b3CreateVisualShapeSetChildTransform( cmd, index, pos, rot )
+    gbullet.b3CreateVisualShapeSetRGBAColor( cmd, index, col )
+    local status = gbullet.b3SubmitClientCommandAndWaitStatus(self.client, cmd)
+    
+    p("Visual Object Created:", gbullet.b3GetStatusType(status) == gbullet.CMD_CREATE_VISUAL_SHAPE_COMPLETED)
+    
     local cmd = gbullet.b3CreateMultiBodyCommandInit(self.client)
-    gbullet.b3CreateMultiBodyBase( cmd, 1.0, pid, shapeidx, pos, rot, frameP, frameR )
+    local rigidbody = gbullet.b3CreateMultiBodyBase( cmd, 2.0, cindex, index, pos, rot, frameP, frameR )
     local status = gbullet.b3SubmitClientCommandAndWaitStatus(self.client, cmd)
-    local rid = gbullet.b3GetStatusBodyIndex(status)
-
+    
     p("Multibody Created:", gbullet.b3GetStatusType(status) )
         
-    return rid
+    return rigidbody
 end
 
 ------------------------------------------------------------------------------------------------------------
@@ -100,15 +95,25 @@ function simApp:Startup()
     p("Adding world...", world.physId)   
 
     ------------------------------------------------------------------------------------------------------------
-    -- Note: The visual shape doesnt seem to seperately instance for each object
-    --       so each object shares the same visual shape because they are identical
-    balls = {}
-    balls.test1 = self:makeBall(1.0, 0.0, 1.5, 0.5, Cred)    
-    p("Adding Ball...", balls.test1)
-    balls.test2 = self:makeBall(0.0, 0.0, 1.0, 0.5, Cgreen)    
-    p("Adding Ball...", balls.test2)
-    balls.test3 = self:makeBall(-1.0, 0.0, 0.5, 0.5, Cblue)    
-    p("Adding Ball...", balls.test3)
+
+    vehicle = {}
+
+    -- Make a vehicle from components
+    -- Wheel colliders first 
+    vehicle.wheels = {}
+    
+    -- gbullet.b3CreateVisualShapeAddCylinder( cmd, radius, width )
+    -- vehicle.wheels.FR = gbullet.b3SubmitClientCommandAndWaitStatus(self.client, cmd);
+    -- gbullet.b3CreateVisualShapeAddCylinder( cmd, radius, width )
+    -- vehicle.wheels.RL = gbullet.b3SubmitClientCommandAndWaitStatus(self.client, cmd);
+    -- gbullet.b3CreateVisualShapeAddCylinder( cmd, radius, width )
+    -- vehicle.wheels.RR = gbullet.b3SubmitClientCommandAndWaitStatus(self.client, cmd);
+ 
+
+    --gbullet.b3LoadUrdfCommandSetStartPosition(self.car.physics, 0.0, 10.0, 0.0)
+    vehicle.wheels.FL = self:createWheel(1.0, 0.0, 1.0, 0.5, 0.25)    
+    p("Adding Vehicle...", vehicle.wheels.FL)
+   
     -- Set sim to unitialised.
     self.simInit = 0
 
@@ -118,7 +123,6 @@ function simApp:Startup()
 end 
 
 ------------------------------------------------------------------------------------------------------------
--- This SIM INIT method isnt ideal, but it will do for now.
 
 function simApp:Update( ) 
 
@@ -145,6 +149,11 @@ function simApp:Update( )
         local cmd = gbullet.b3InitStepSimulationCommand(self.client)
         local status = gbullet.b3SubmitClientCommandAndWaitStatus(self.client, cmd)
     end
+
+    -- Something bad has happend - weve lost client connect etc
+    --local cmd = gbullet.b3ProcessServerStatus(self.client)
+    --local stats = gbullet.b3GetStatusType(cmd) 
+    --p( "stats", stats )
 end
 
 ------------------------------------------------------------------------------------------------------------
