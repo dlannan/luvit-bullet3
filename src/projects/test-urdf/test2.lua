@@ -11,7 +11,7 @@ local timer = require('timer')
 local simApp = {}
 
 
-function simApp:createWheel( x, y, z, r, w )
+function simApp:createWheel( x, y, z, r, w, cid, vid )
 
     local radius    = r
     local width     = w
@@ -25,24 +25,55 @@ function simApp:createWheel( x, y, z, r, w )
 
     local cmd = gbullet.b3CreateCollisionShapeCommandInit( self.client )
     local cindex = gbullet.b3CreateCollisionShapeAddCylinder( cmd, radius, width )
-    --gbullet.b3CreateCollisionShapeSetChildTransform( cmd, cindex, pos, rot )
+    -- if cid ~= nil then 
+    --     gbullet.b3CreateCollisionShapeSetChildTransform( cmd, cid, pos, rot )
+    -- end
     local status = gbullet.b3SubmitClientCommandAndWaitStatus(self.client, cmd)
+    cid = gbullet.b3GetStatusCollisionShapeUniqueId(status)
 
     local cmd = gbullet.b3CreateVisualShapeCommandInit( self.client )
-    local index = gbullet.b3CreateVisualShapeAddCylinder( cmd, radius, width )
-    --gbullet.b3CreateVisualShapeSetChildTransform( cmd, index, pos, rot )
-    gbullet.b3CreateVisualShapeSetRGBAColor( cmd, index, col )
+    local vindex = gbullet.b3CreateVisualShapeAddCylinder( cmd, radius, width )
+    -- if vid ~= nil then     
+    --     gbullet.b3CreateVisualShapeSetChildTransform( cmd, vid, pos, rot )
+    -- end
     local status = gbullet.b3SubmitClientCommandAndWaitStatus(self.client, cmd)
-    
+    vid = gbullet.b3GetStatusVisualShapeUniqueId(status)
+    gbullet.b3CreateVisualShapeSetRGBAColor( cmd, vid, col )
+
     p("Visual Object Created:", gbullet.b3GetStatusType(status) == gbullet.CMD_CREATE_VISUAL_SHAPE_COMPLETED)
     
     local cmd = gbullet.b3CreateMultiBodyCommandInit(self.client)
-    local rigidbody = gbullet.b3CreateMultiBodyBase( cmd, 2.0, cindex, index, pos, rotflip, frameP, frameR )
+    local rigidbody = gbullet.b3CreateMultiBodyBase( cmd, 2.0, cid, vid, pos, rotflip, frameP, frameR )
     local status = gbullet.b3SubmitClientCommandAndWaitStatus(self.client, cmd)
     
-    p("Multibody Created:", gbullet.b3GetStatusType(status) )
-        
-    return rigidbody
+    local bidx = gbullet.b3GetStatusBodyIndex( status )
+    p("Multibody Created:", gbullet.b3GetStatusType(status) == gbullet.CMD_CREATE_MULTI_BODY_COMPLETED )
+    
+    return bidx, cid, vid
+end
+
+------------------------------------------------------------------------------------------------------------
+
+function simApp:createWheelJoint( pb, cb, px, py, pz, cx, cy, cz )
+
+    local pos = ffi.new( "double[3]", { [0]=0.0, 0.0, 0.0 } )
+    local rot = ffi.new( "double[4]", { [0]=0.0, 0.0, 0.0, 1.0} )
+    local fchild = ffi.new( "double[7]", { [0]=cx, cy, cz, 0.0, 0.0, 0.0, 1.0 } )
+    local fparent = ffi.new( "double[7]", { [0]=px, py, pz, 0.0, 0.0, 0.0, 1.0 } )
+    local axis = ffi.new( "double[3]", { [0]=0.0, 1.0, 0.0} )
+
+    local joint = ffi.new("struct b3JointInfo[1]")
+    joint[0].m_jointType = gbullet.ePoint2PointType
+    joint[0].m_jointAxis = axis
+    joint[0].m_jointName = "joint"..cb
+    joint[0].m_linkName = "link"..cb
+    joint[0].m_parentFrame = fchild
+    joint[0].m_childFrame = fparent
+  
+    local cmd = gbullet.b3InitCreateUserConstraintCommand( self.client, pb, -1, cb, -1, joint )
+    local status = gbullet.b3SubmitClientCommandAndWaitStatus(self.client, cmd)
+  
+    return bl 
 end
 
 ------------------------------------------------------------------------------------------------------------
@@ -102,15 +133,17 @@ function simApp:Startup()
     vehicle.wheels = {}
 
     --gbullet.b3LoadUrdfCommandSetStartPosition(self.car.physics, 0.0, 10.0, 0.0)
-    vehicle.wheels.FL = self:createWheel(2.0, 1.0, 1.0, 0.5, 0.25)    
+    vehicle.wheels.FL = self:createWheel(2.0, 1.0, 1.0, 0.5, 0.25)
     vehicle.wheels.FR = self:createWheel(2.0, -1.0, 1.0, 0.5, 0.25)   
-    vehicle.wheels.RL = self:createWheel(-2.0, 1.0, 1.0, 0.5, 0.25)    
-    vehicle.wheels.RR = self:createWheel(-2.0, -1.0, 1.0, 0.5, 0.25)   
 
     -- rear axle
-    vehicle.wheels.RA = self:createWheel(-2.0, 0.0, 1.0, 0.1, 1.5)   
-   
-    -- Set sim to unitialised.
+    local axb, axc, axv = self:createWheel(-2.0, 0.0, 1.0, 0.1, 1.5)   
+
+    local rlb, rlc, rlv = self:createWheel(-2.0, 1.0, 1.0, 0.5, 0.25)    
+    local rrb, rrc, rrv = self:createWheel(-2.0, -1.0, 1.0, 0.5, 0.25)   
+
+    self:createWheelJoint( axb, rlb, -2, 1.0, 0.0, -2, 1.0, 0.0 )
+    self:createWheelJoint( axb, rrb, -2, -1.0, 0.0, -2, -1.0, 0.0 )
     self.simInit = 0
 
     ------------------------------------------------------------------------------------------------------------
