@@ -63,13 +63,16 @@ function simApp:createWheelJoint( pb, cb, px, py, pz, cx, cy, cz )
     local axis = ffi.new( "double[3]", { [0]=0.0, 1.0, 0.0} )
 
     local joint = ffi.new("struct b3JointInfo[1]")
-    joint[0].m_jointType = gbullet.ePoint2PointType
+    joint[0].m_jointType = gbullet.eFixedType
     joint[0].m_jointAxis = axis
     joint[0].m_jointName = "joint"..cb
     joint[0].m_linkName = "link"..cb
     joint[0].m_parentFrame = fchild
     joint[0].m_childFrame = fparent
-  
+    joint[0].m_parentIndex = pb
+    joint[0].m_jointLowerLimit = 0.1 
+    joint[0].m_jointUpperLimit = 0.1 
+
     local cmd = gbullet.b3InitCreateUserConstraintCommand( self.client, pb, -1, cb, -1, joint )
     local status = gbullet.b3SubmitClientCommandAndWaitStatus(self.client, cmd)
   
@@ -98,13 +101,12 @@ function simApp:Startup()
     self.timer.sleep(500)
 
     -- Setup the viz
-    local cmd = gbullet.b3InitConfigureOpenGLVisualizer(self.client)
-    gbullet.b3ConfigureOpenGLVisualizerSetVisualizationFlags( cmd, gbullet.COV_ENABLE_GUI, 1)
-    gbullet.b3ConfigureOpenGLVisualizerSetVisualizationFlags( cmd, gbullet.COV_ENABLE_TINY_RENDERER, 1)
-    gbullet.b3ConfigureOpenGLVisualizerSetVisualizationFlags( cmd, gbullet.COV_ENABLE_RENDERING, 1)
+    -- local cmd = gbullet.b3InitConfigureOpenGLVisualizer(self.client)
+    -- gbullet.b3ConfigureOpenGLVisualizerSetVisualizationFlags( cmd, gbullet.COV_ENABLE_GUI, 1)
+    -- gbullet.b3ConfigureOpenGLVisualizerSetVisualizationFlags( cmd, gbullet.COV_ENABLE_TINY_RENDERER, 1)
+    -- gbullet.b3ConfigureOpenGLVisualizerSetVisualizationFlags( cmd, gbullet.COV_ENABLE_RENDERING, 1)
 
-    local status = gbullet.b3SubmitClientCommandAndWaitStatus(self.client, cmd);
-
+    -- local status = gbullet.b3SubmitClientCommandAndWaitStatus(self.client, cmd)
 
     --local cmd = gbullet.b3InitResetSimulationCommand(self.client)
     --local status = gbullet.b3SubmitClientCommandAndWaitStatus(self.client, cmd);
@@ -142,8 +144,8 @@ function simApp:Startup()
     local rlb, rlc, rlv = self:createWheel(-2.0, 1.0, 1.0, 0.5, 0.25)    
     local rrb, rrc, rrv = self:createWheel(-2.0, -1.0, 1.0, 0.5, 0.25)   
 
-    self:createWheelJoint( axb, rlb, -2, 1.0, 0.0, -2, 1.0, 0.0 )
-    self:createWheelJoint( axb, rrb, -2, -1.0, 0.0, -2, -1.0, 0.0 )
+    self:createWheelJoint( axb, rlb, 0.0, 0.0, 0.75, 0.0, 0.0, -0.25 )
+    self:createWheelJoint( axb, rrb, 0.0, 0.0, -0.75, 0.0, 0.0, 0.25 )
     self.simInit = 0
 
     ------------------------------------------------------------------------------------------------------------
@@ -165,6 +167,9 @@ function simApp:Update( )
             gbullet.b3PhysicsParamSetRealTimeSimulation(cmd, 1)
             gbullet.b3PhysicsParamSetNumSubSteps(cmd, 6)
             local status = gbullet.b3SubmitClientCommandAndWaitStatus(self.client, cmd)        
+
+            local cmd = gbullet.b3InitRequestDebugLinesCommand(self.client, 0x182c)
+            local status = gbullet.b3SubmitClientCommandAndWaitStatus(self.client, cmd)        
         end
     end
 
@@ -174,6 +179,7 @@ function simApp:Update( )
     self.time_last = time_current
 
     if gbullet.b3CanSubmitCommand(self.client) == 1 then
+        
         -- Update the physics
         local cmd = gbullet.b3InitStepSimulationCommand(self.client)
         local status = gbullet.b3SubmitClientCommandAndWaitStatus(self.client, cmd)
