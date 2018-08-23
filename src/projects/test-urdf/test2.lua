@@ -168,8 +168,8 @@ function simApp:Startup()
     vehicle.wheels = {}
 
     --gbullet.b3LoadUrdfCommandSetStartPosition(self.car.physics, 0.0, 10.0, 0.0)
-    vehicle.wheels.FL = self:createWheel(2.0, 1.0, 1.0, 0.5, 0.25, 2.0)
-    vehicle.wheels.FR = self:createWheel(2.0, -1.0, 1.0, 0.5, 0.25, 2.0)   
+    local flb, flc, flv = self:createWheel(2.0, 1.0, 1.0, 0.5, 0.25, 2.0)
+    local frb, frc, frv = self:createWheel(2.0, -1.0, 1.0, 0.5, 0.25, 2.0)   
 
     -- rear axle split
     local laxb, laxc, laxv = self:createWheel(-2.0, 0.2, 1.0, 0.1, 0.1, 2.0)   
@@ -185,6 +185,9 @@ function simApp:Startup()
 
     self:createFixedWheelJoint( bb, laxb, -2.0, 0.6, 0.0, 0.0, 0.0, 0.05 )
     self:createFixedWheelJoint( bb, raxb, -2.0, -0.6, 0.0, 0.0, 0.0, -0.05 )
+
+    self:createFixedWheelJoint( bb, flb, 2.0, 0.7, 0.0, 0.0, 0.0, 0.05 )
+    self:createFixedWheelJoint( bb, frb, 2.0, -0.7, 0.0, 0.0, 0.0, -0.05 )
 
     self.simInit = 0
 
